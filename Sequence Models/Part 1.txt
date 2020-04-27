@@ -1,0 +1,92 @@
+Dictionary - LIst of all worlds in data
+Each word represented as a boolean value with whole size of dictionary
+Why not NN for sequence data - due to variable size of input and output
+			     - doesnt sahre features learned across different positions of text
+Structure x<1> goes to y<1> and output of this passed as a<1> to next data we get y<2> from combination of a<1> and x<2>
+a<0> passes to first part as a formality
+Same parameters used for each X in from of Wax and for as Waa and Wya for predictions
+
+Drawback - Only uses past values and not future
+
+a<1> = g(Waa*a<0>+Wax*x<1>+ba)   y<1> = g(Wya*a<1>+by) g-activation function
+tanh main activation / relu minor for a
+sigmoid is activation function for y for classification
+
+a<t> = g(waa*a<t-1>+Wax*x<t>+ba)/g(Wa[a<t-1>,x<t>]+ba)
+y<t> = g(wya*a<t>+by)
+
+Weight parameter are SAME across all time steps
+
+Loss<t> = -y<t>*log(y'<t>) - (1-y<t>)*log(1-y'<t>)
+Loss = sum over all time of Loss<t>
+Backprop can be done on this and is called backprop through time
+
+Above is example of many input to many output similarly we could have many input to one output
+where the only output is from the last neuron
+one to one is standard Neural Network
+One to many - one input to first block and output y for each time step
+Similarly we could have Tx initial blocks for inputs and then Ty output blocks
+First part which takes input is called encoder and second half which gives output is called decoder
+
+Language Model - Given any sentence tells probability of that sentence
+probability of sentence means chance of some particular sentence occurring
+
+All sentences are tokenized in the form of onehot vectos of the dictionary with the one in the position of the word in the dictionary
+For unknown words or words not in dictionary they are replaced by <UNKNOWN> token
+
+We consider many to many RNN first output is softmax output of chance of first word being x,y or z for all words in dictionary 
+Second word outputs P(x<2>|x<1>) or probability of 2nd word given that first word was x<1>
+Similarly 3rd is P(x<2>|x<2>,x<1>)
+Loss<t> = -Sum(yi<t>log(yi'<t>))
+Loss = Sum(Loss<t>)
+
+Sampling using RNN - Choose x<1> as zero and obtain softmax distribution from y<1> 
+According to distribution y<1> choose a sample with it's probs to get x<2> feed the sample x<2> taken from y<1>
+and continue till we get <EOF> token to obtain some sentence
+We can repeat similarly with characters instead of words
+
+Vanishing Gradient Problem - In Backprop initial values may not be effected by output which comes from later values
+Similaryly in RNNs values from later points so later output does not depend on intial input
+and gradient for initial layers while travelling back may vanish and become close to zero
+Similarly we have exploding gradients in which these values become very large and infeasible
+exploding gradients is easy to solve and can be solved by clipping the gradients
+
+Gated Recurrent Unit
+Normal - a<t> = g(Wa[a<t-1>,x<t>] + ba)
+c = memory cell
+c<t> = a<t> - for GRU
+c(candiate)<t> = tanh(Wc[c<t-1>,x<t>])
+gammau = sigmoid(Wu[c<t-1>,x<t>]+bu)
+gammau denotes whether we should update/use ct or not
+c<t> = gammau*c(candidate)<t>+(1-gammau)*c<t-1>
+if gamma = 0 we maintain c value if gamma = 1 we update to candidate c 
+gamma is close to zero or 1 and this helps with vanishing gradient problem
+as if we have to maintain c value we can maintain it without much problem
+gamma may also be a vecotr of bits in that case * is element wise  
+FULL GRU also has a term for relevance in the form of Gammar
+this term denotes how relevant c<t-1> is for c(candidate)<t>
+Gammar = sigmoid(Wr[c<t-1>,x<t>]+br)
+c(candidate)<t> = tanh(Wc[c<t-1>,x<t>]+bu)
+
+LSTM - (Long Short term memory)
+c(candidate)<t> = tanh(Wc[a<t-1>,x<t>]+bc)
+sigmau(update) = sigmoid(Wu[a<t-1>,x<t>]+bu)
+sigmaf(forget) = sigmoid(Wf[a<t-1>,x<t>]+bf)
+sigmao(output) = sigmoid(Wo[a<t-1>,x<t>]+bo)
+c<t> = sigmau*c(candidate)<t>+sigma(forget)*c<t-1>
+a<t> = sigmao*tanh(c<t>)
+The sigma values are gates which are usually zero or one and denote something being true or false
+
+Bidirectional RNN
+Needed as we may need future data for current output
+We form 2 RNNs one with information flowing forward in terms of a and other with information flowing backwards
+Input for both is same at any stage and total output is given by
+y<t> = g(Wy[af<t>,ab<t>] + by) or sum of forward and backward paths
+in forward part a<t> is determined a<t-1> and x<t-1>
+In backward we reverse all arrows of flow and a<t> is determined by a<t+1> and x<t+1>
+
+Deep RNN
+Multiple RNNs stacked on each other vertically with the output at each step of RNN
+being fed as input to the next layer which is stacked on top of it
+So output of first RNN at each time step is input to next RNN at each time step
+

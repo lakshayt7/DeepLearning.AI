@@ -1,0 +1,105 @@
+Problems with dictionary onehot vector representation
+There is no assosciation between words and it treats them as same, ex-orange and apple are similar but treated as same
+
+We now use featurized representation with multiple features like Gender,Age,Food and ranking each word 
+according to these features
+In featurized representation we can figure out how close different words are
+These are called embedding vectors
+
+Transfer Learning
+Learn word embeddings from large text corpus
+Transfer embedding to mew task with smaller data set
+continue to fine tune embeddings with new data
+
+Properties of word embeddings:
+Find analogie between words
+man:woman - King:?
+We can do this by calculating eman-ewoman = eking-e?
+where e represents embedding of corresponding word
+whatever gives lowest value is best representation to replace ?
+argmax(w)similarity(ew,eking-eman+ewoman)
+so find w such that it is closest to e
+most commonly used similarity function is cosine similarity
+sim(u,v) = u.T*v/(||u||2*||v||2)
+or cosine between u and v vetor
+other options are ||u-v||2^2 or L2 distance
+
+E is embrdding matrix which has dimensions n(features)*n(words) and contains features of all words
+let oj be the onehot vector with one at jth place then
+E*Oj = ej where ej contains features of jth word
+
+Neural Language Model
+Take embeddings of whole sentence so (n_word,n_feature)
+and pass it through a dense and then through a softmax layer to get the next word
+To deal with long sentences maintain a window of last few elements to look at
+To learn word embeddings we often uses only previous and next word
+
+context - given word, target - word to be predicted
+Oc->E->ec->O(softmax_layer)->y(hat)
+so feature vector of contect is passed to a softmaxlayer which outputs the prediction
+Softmax : p(t|c) = exp(thetat.t*ec)/(sum(j over all words in dictionary)(exp(thetaj.t*ec)))
+thetat = parameter associated with output t
+Loss(y(hat),y) = -sum(yilog(yihat))
+to speed up calculations we can use a classifier in the form of A BST
+which tells which half the group belongs to
+This is called hierarchia softmax classifier
+Sampling of context can be balanced by using less popular words more than more popular words
+
+Negative Sampling
+context word target
+orange  juice 1 - as orange juice is a correct label
+orange  king  0 - as orange king is an incorrect label
+We introduce correct and incorrect labellings
+context word - target word - label
+k times we take random words from the dictionary and label all of them as contexts
+this is turned into a supervised learning problem with 
+input/x as {context,word} and label as target
+k is taken as 2-5 for smaller data sets and around 5-20 for larger data sets
+
+We train a logistic regression model which takes as input c-context and word-t and outputs
+P(y=1|c,t) = sigmoid(theta.t*ec)
+We generate data by taking a positive example we have and adding k negative examples by randomly choosing words from the dictionary
+While training we train across k+1 examples every time one positive and k negaitve examples
+This is better as we turn the softmax into a binary classification problem which is faster to solve
+The way we sample to get the k random words we sample by
+P(omegai) = f(omegai)^3/4/sum(omegai)^3/4
+
+GloVe - Global Vector Algorithm
+
+Xij = # of time j appears in the context of i
+i->t j->c
+In glove aglorithm Xij is defined as whether or not the two words appear in close proximity of each other
+So Xij = Xji it captures how often they appear close to each other
+Minimize sum(i)sum(j)f(Xij)(thetai.T*ej + bi + bj'- logXij)^2
+here f() is a weighting term which gives zero if Xij is zero to avoid error due to log(0)
+and by convention 0log(0) = 0
+f also accounts for frequency of occurence of these words
+thetai  and ej are symmetric
+so we can take e(final) = (theta+e)/2 - trained values
+theta measures how related these words are which is proportional to number of times they occur together
+
+Sentiment Classification:
+Basic Algorithm: Take Embeddings of all words in sentence, add them and take average
+Now pass this through a softmax layer which predicts rating or sentiment
+
+RNN for Sentiment classification:
+Pass embeddings for each word to a RNN at each time step
+The RNN is a many to one classifier which outputs sentiment at last node
+
+Bias in word embeddings
+Word embeddings can reflect gender,ethnicity,age,sexual orientation and other biases 
+of the text used to train the model.
+To identify gender bias we can take multiple examples like male-female,boy-girl,he-she
+and take the difference of their embedding vectors this difference gives the direction of the gender bias
+The average of these, the gender bias is 1D whereas the general embedding is (numberoffeature)dimensions
+
+TO nuetralize bias we take all words that are not by definition based on gender and project to get rid of bias
+we do not neutralize bias in words like he/she
+We remove bias  by projecting themm along the bias direction and subtracting the bias
+
+Equalize pairs: we make sure words are equidistant in embedding space from
+pairs like grandfather and grandmother
+We do this by getting these pairs closer to the axis perpendicular to the bias and making them equidistant from the word
+
+To identify what words to make definional and not remove bias from we train a classifier to identify 
+definitional words

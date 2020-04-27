@@ -1,0 +1,111 @@
+Translating one language to another use a RNN with an encoder and decoder section one part takes the input and the other 
+gives the output
+Image captioning replace initial part of RNN and replace it by an encoding which
+is a CNN like the AlexNet and then pass the label to a RNN which outputs a caption
+
+Above RNN for translation models P(y<1>....y<Ty>|x<1>....x<Ty>)
+We do not sample randomly as we want to find y such that P(y|x) is maximum and sampling randomly may result in bad predictions at times
+
+Why not use greedy search?
+Take output from first step as word with maximum probility and pass it to the next node
+so on greedily choose the most likely option every time
+This does not give better answers as greedy algorithms do not give optimal answer in this case
+and Later probabilities may end up being higher for initial small ones
+Also, we cannot iterate over all words as we have a very large number of possible words
+Hence, we need to approximate search algorithms
+
+Similary for transcripting videos we need to get most likely translation and cannot sample
+For this we use BEAM SEARCH
+B-> Beam width
+Beam search algorithm keeps track of the B most likely sequences that could be the answer
+or the words till rank B in a list of words sorted by their probability to be first word
+In Beam search what we try to maximise is P(y<1>y<2>|x)= P(y<1>|x)*P(y<2>|y<1>,x)
+For first step we find all words till rank B and store them for next time step 
+we find next B most like by iterating over whole dictionary and comparing likelihood
+in B*size(of dictionary steps) from these we select the B most likely and store them for next step
+for B = 1 we have greedy search algorithm
+
+argmax(y)P<y|x> = argmax(y)product over all time of P(y<t>|x,y<1>..y<t-1>)
+as this number can become very small we instead maximise logs
+argmax(y)sum over all time of log(P(y<t>|x,y<1>..y<t-1>))
+taking log prevents numerical underflow
+
+Problem of above objective function - Prefers short sentences too much as probabilities get low with larger sentences as we keep on multiplying with no <1
+So to not penalize long sentences too much we take loss as
+(argmax(y)sum over all time of log(P(y<t>|x,y<1>..y<t-1>)))/Ty
+Dividing by Ty helps long sentences
+sometimes to make Ty less effective we take Ty^(alpha) so that algorithm prefers shorter sentences
+where alpha is a hyperparamater to be adjusted
+
+Large B
+Pros: Better result
+cons: algorithm is slower
+Beam Search is Faster than BFS or DFS but is not guaranteed to find the solution
+
+Debugging Beam Search
+let y(star) be optimal and y(hat) be prediction by model
+
+if(P(y(star)|x)>P(y(hat)|x)) beam search is at fault as we can get better value 
+by improving beam search
+
+if(P(y(star)|x)<P(y(hat)|x) -> RNN model is at fault 
+as even though ystar is better answer RNN predicted opposite => RNN does not model probability properly
+
+Bleu Score - Measures how good is a translation against multiple correct translation
+Bleu - Bilingual Evaluation understudy
+Some other measures - what fraction of words of model generated outut occur in
+reference- but this may give good result even for bad outputs
+
+Modified precision - only give credit to a word maximum number of times it occurs in example
+THis is a better representation
+
+Bleu score on Bigrams
+Bigrams - two consecutive words
+Divide the output sentence into bigrams
+Make a clip count which is the maximum number of times the bigrams occurs in the references we are checking against
+and count as the number of times it occurs in output
+precision is sum(clip)/sum(count)
+
+Similarly for unigrams
+precision = sum(countclip(unigram))/sum(count(unigram))
+
+n-gram - 
+precision = sum(countclip(n-gram))/sum(count(n-gram))
+
+for output = reference we get precision = 1 for all references
+
+Bleu Score = BP*exp((sum(from 1 to 4)pi)/4)
+BP or Brevity Penalty penalizes shorter translations
+BP = {1 if output_length>reference_output_length
+      exp(1-reference_length/output_length) otherwise 
+
+Encoder Deocder architecture works well for short but bad for long sentences
+as it is hard for it carry back data
+
+Attention Model
+Take a bidirectional RNN and give input to it the sentence to be translated as a time series
+Next add weighing vector alpha denoted by alpha<i,j> where it is the importance to be given to the jth word
+for calculating the update to the ith word
+We then calculate the output for the BRNN and weight it by alpha to get the context for the ith word which is then passed as input to the second RNN which determines the
+output time series
+
+a<t'> = (a-><t'>.a<-<t'>) a is both forward and backward a vectors stacked togethre
+sum(over t')(alpha<1,t'>) = 1
+c<1> = sum(over t')alpha<1,t'>*a<ti>
+alpha<t,t'> is amount of attention y<t> should pay to a<t'>
+these c vectors are then passed as an input to a RNN which outputs a translation
+
+alpha<t,t'> = exp(e<t,t'>)/(sum(over t')e<t,t'>)
+e<t,t'> is gotten by training a neural network with s<t-1> and a<t'>
+
+Downside of algorithm - it runs in quadratic cost as calculating alpha takes T*T' time
+
+Speech Recognition
+Spectrogram - Shows how loud is sound with different frequencies and different times
+CTC cost function for speech recognition
+Basic Rule:Collapse Repeated characters not separated by "blank"
+
+Trigger Word System
+Simple model take a RNN and let it take input speech data
+and let it's output before encountering the trigger word be zero and after it 1
+Hack to improve take multiple ones to make detection more effective
